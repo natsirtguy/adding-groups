@@ -34,6 +34,22 @@ Everything — layout, colors, and the problem logic — lives in `index.html`.
 The color palette is defined as CSS variables at the top of the `<style>` block
 (`--bg`, `--ink`, `--cube`, `--dot`, `--accent`), so retheming is a one-line change.
 
+## Hosting on GitHub Pages
+
+This repo is set up to deploy to GitHub Pages automatically. The
+`.github/workflows/deploy.yml` workflow publishes the repo root (served via
+`index.html`) on every push to `main`; `.nojekyll` tells Pages to serve the files
+as-is without running Jekyll.
+
+To turn it on, once the repo is on GitHub:
+
+1. Go to **Settings → Pages**.
+2. Under **Build and deployment → Source**, choose **GitHub Actions**.
+3. Push to `main` (or re-run the workflow) — the site builds and the live URL
+   appears in the workflow's deploy step and on the Pages settings screen.
+
+The published URL will be `https://<user>.github.io/<repo>/`.
+
 ## License
 
 Free to use and share. Add a `LICENSE` file (e.g. MIT) if you publish it.
