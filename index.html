@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+<title>Adding Groups!</title>
+<style>
+  :root {
+    --bg: #fdf6e3;
+    --ink: #3a3a55;
+    --cube: #ff9f43;     /* one color for every cube */
+    --dot: #9aa0b4;
+    --accent: #ffd43b;
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { height: 100%; margin: 0; }
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: "Comic Sans MS", "Comic Sans", "Baloo 2", system-ui, sans-serif;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 16px 22px;
+    min-height: 100%;
+    overflow: hidden;
+    text-align: center;
+  }
+
+  h1 { margin: 0 0 4px; font-size: clamp(22px, 6vw, 38px); letter-spacing: 1px; }
+  .hint { margin: 0; font-size: clamp(13px, 3.4vw, 18px); opacity: .7; min-height: 1.4em; }
+
+  /* ---- equation ---- */
+  .equation {
+    font-size: clamp(40px, 13vw, 96px);
+    font-weight: 800;
+    display: flex;
+    align-items: center;
+    gap: clamp(8px, 3vw, 24px);
+    line-height: 1;
+    margin: 6px 0;
+  }
+  .equation.shake { animation: shake .4s; }
+  .equation .answer {
+    color: var(--ink);
+    min-width: 1.1em;
+    display: inline-block;
+    transform: scale(0);
+    transition: transform .45s cubic-bezier(.2,1.6,.4,1);
+  }
+  .equation.revealed .answer { transform: scale(1); }
+  .equation .answer.placeholder { color: var(--dot); transform: scale(1); }
+  .equation .answer.wrong { color: #e03131; transform: scale(1); }
+  @keyframes shake {
+    0%,100% { transform: translateX(0); }
+    25% { transform: translateX(-9px); }
+    50% { transform: translateX(9px); }
+    75% { transform: translateX(-9px); }
+  }
+
+  /* ---- arena where the groups live ---- */
+  .arena {
+    flex: 1;
+    width: 100%;
+    max-width: 720px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    transition: gap .45s ease;   /* gap closes one step per tap */
+  }
+
+  .group {
+    border: 4px dashed var(--dot);
+    border-radius: 22px;
+    padding: clamp(10px, 3vw, 22px);
+    min-width: clamp(80px, 26vw, 150px);
+    min-height: clamp(80px, 26vw, 150px);
+    display: flex;
+    flex-wrap: wrap;
+    align-content: center;
+    justify-content: center;
+    gap: clamp(8px, 2.5vw, 16px);
+    transition: border-color .6s ease, border-radius .6s ease;
+  }
+  /* once fully together, the two dashed boxes disappear and one ring wraps all */
+  .arena.merged .group { border-color: transparent; border-radius: 0; }
+  .group.gone { display: none; }   /* second box folds away after cubes merge */
+
+  .merge-ring {
+    position: absolute;
+    border: 4px dashed var(--dot);
+    border-radius: 22px;
+    opacity: 0;
+    transition: opacity .4s ease;
+    pointer-events: none;
+  }
+
+  .cube {
+    width: clamp(30px, 8vw, 52px);
+    height: clamp(30px, 8vw, 52px);
+    border-radius: 10px;
+    background: var(--cube);
+    box-shadow: inset 0 -5px 0 rgba(0,0,0,.15), 0 3px 5px rgba(0,0,0,.12);
+    animation: pop .35s backwards;
+  }
+  @keyframes pop {
+    from { transform: scale(0); }
+    60%  { transform: scale(1.15); }
+    to   { transform: scale(1); }
+  }
+
+  .plus {
+    font-size: clamp(34px, 10vw, 70px);
+    font-weight: 800;
+    color: var(--ink);
+    transition: opacity .45s ease, transform .45s ease;
+  }
+  .plus.hidden { opacity: 0; transform: scale(.3); }
+
+  /* ---- keypad (in-app keyboard) ---- */
+  .keypad {
+    display: none;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    width: min(280px, 80vw);
+    margin-bottom: 12px;
+  }
+  .keypad.show { display: grid; }
+  .keypad button {
+    aspect-ratio: 1 / 1;
+    background: #fff;
+    color: var(--ink);
+    font-size: clamp(22px, 6vw, 30px);
+    border-radius: 16px;
+    box-shadow: 0 4px 0 #d9d3c2;
+  }
+  .keypad button:active { box-shadow: 0 1px 0 #d9d3c2; }
+  .keypad .spacer { visibility: hidden; box-shadow: none; }
+
+  /* ---- controls ---- */
+  .controls { display: flex; gap: 14px; align-items: center; }
+  button {
+    font-family: inherit; border: none; cursor: pointer; border-radius: 999px;
+    font-weight: 800; transition: transform .1s ease, filter .15s ease;
+  }
+  button:active { transform: translateY(2px) scale(.98); }
+  .next {
+    background: var(--accent); color: #5a4a00;
+    font-size: clamp(18px, 5vw, 26px); padding: 16px 34px;
+    box-shadow: 0 5px 0 #d9b400;
+  }
+  .next:active { box-shadow: 0 2px 0 #d9b400; }
+  .secondary {
+    background: #fff; color: var(--ink);
+    font-size: clamp(15px, 4vw, 20px); padding: 14px 20px;
+    box-shadow: 0 4px 0 #d9d3c2;
+  }
+
+  #confetti { position: fixed; inset: 0; pointer-events: none; z-index: 50; }
+</style>
+</head>
+<body>
+  <header>
+    <h1>🧮 Adding Groups!</h1>
+    <p class="hint" id="hint">Here are two groups of cubes.</p>
+  </header>
+
+  <div class="equation" id="equation" aria-live="polite"></div>
+
+  <div class="arena" id="arena">
+    <div class="group" id="groupA"></div>
+    <div class="plus" id="plus">+</div>
+    <div class="group" id="groupB"></div>
+    <div class="merge-ring" id="ring"></div>
+  </div>
+
+  <div class="keypad" id="keypad"></div>
+
+  <div class="controls">
+    <button class="secondary" id="newBtn">🔀 New</button>
+    <button class="next" id="nextBtn">Bring them together ▶</button>
+  </div>
+
+  <canvas id="confetti"></canvas>
+
+<script>
+  // Number of steps the groups take to slide together (more = smoother).
+  const MERGE_STEPS = 3;
+
+  function buildDeck() {
+    const deck = [];
+    for (let a = 0; a <= 2; a++)
+      for (let b = 0; b <= 2; b++)
+        deck.push({ a, b });
+    for (let i = deck.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [deck[i], deck[j]] = [deck[j], deck[i]];
+    }
+    return deck;
+  }
+
+  const eqEl   = document.getElementById('equation');
+  const arena  = document.getElementById('arena');
+  const groupA = document.getElementById('groupA');
+  const groupB = document.getElementById('groupB');
+  const plus   = document.getElementById('plus');
+  const ring   = document.getElementById('ring');
+  const hint   = document.getElementById('hint');
+  const nextBtn= document.getElementById('nextBtn');
+  const newBtn = document.getElementById('newBtn');
+  const keypad = document.getElementById('keypad');
+
+  let deck = buildDeck();
+  let cardIdx = 0;
+  // frame: 0..MERGE_STEPS = sliding (MERGE_STEPS = merged, awaiting answer),
+  //        MERGE_STEPS+1 = answered correctly
+  let frame = 0;
+  let answered = false;
+  let current = deck[0];
+
+  // ---- build the in-app number keypad once (phone layout: 1-9, then 0) ----
+  ['1','2','3','4','5','6','7','8','9','', '0', ''].forEach((d) => {
+    if (d === '') {
+      const s = document.createElement('div');
+      s.className = 'spacer';
+      keypad.appendChild(s);
+    } else {
+      const b = document.createElement('button');
+      b.textContent = d;
+      b.addEventListener('click', () => guess(+d));
+      keypad.appendChild(b);
+    }
+  });
+
+  function maxGap() { return Math.max(14, Math.min(70, window.innerWidth * 0.07)); }
+  function applyGap() {
+    arena.style.gap = (maxGap() * (1 - frame / MERGE_STEPS)) + 'px';
+  }
+
+  function makeCubes(container, n) {
+    container.innerHTML = '';            // empty group = empty dashed box, no "0"
+    for (let i = 0; i < n; i++) {
+      const c = document.createElement('div');
+      c.className = 'cube';
+      c.style.animationDelay = (i * 0.08) + 's';
+      container.appendChild(c);
+    }
+  }
+
+  function renderEquation(showAnswer) {
+    const { a, b } = current;
+    eqEl.innerHTML =
+      `<span>${a}</span><span>+</span><span>${b}</span><span>=</span>` +
+      (showAnswer
+        ? `<span class="answer">${a + b}</span>`
+        : `<span class="answer placeholder">?</span>`);
+    eqEl.classList.toggle('revealed', !!showAnswer);
+  }
+
+  function positionRing() {
+    const ar = arena.getBoundingClientRect();
+    const g  = groupA.getBoundingClientRect();
+    ring.style.left = (g.left - ar.left) + 'px';
+    ring.style.top = (g.top - ar.top) + 'px';
+    ring.style.width = g.width + 'px';
+    ring.style.height = g.height + 'px';
+  }
+
+  // Pool every cube into one box so the spacing matches a single number,
+  // and let the arena center that single box on screen.
+  function mergeIntoOne() {
+    while (groupB.firstChild) groupA.appendChild(groupB.firstChild);
+    groupB.classList.add('gone');
+    positionRing();
+    ring.style.opacity = 1;
+  }
+
+  function showKeypad(on) {
+    keypad.classList.toggle('show', on);
+    nextBtn.style.display = on ? 'none' : '';
+  }
+
+  function enterInput() {
+    hint.textContent = 'How many cubes? Type your answer!';
+    showKeypad(true);
+  }
+
+  function showCard() {
+    frame = 0;
+    answered = false;
+    current = deck[cardIdx];
+    makeCubes(groupA, current.a);
+    makeCubes(groupB, current.b);
+    renderEquation(false);
+    arena.classList.remove('merged');
+    groupB.classList.remove('gone');
+    plus.classList.remove('hidden');
+    ring.style.opacity = 0;
+    applyGap();
+    showKeypad(false);
+    hint.textContent = 'Here are two groups of cubes.';
+    nextBtn.textContent = 'Bring them together ▶';
+  }
+
+  function advance() {
+    if (frame < MERGE_STEPS) {
+      frame++;
+      plus.classList.add('hidden');       // the + fades as they combine
+      applyGap();
+      if (frame === MERGE_STEPS) {
+        arena.classList.add('merged');
+        // show the keypad first so the layout settles, THEN ring the group
+        setTimeout(() => { enterInput(); mergeIntoOne(); }, 480);
+        hint.textContent = 'Now they are one big group!';
+      } else {
+        hint.textContent = 'Sliding closer together…';
+        nextBtn.textContent = 'Keep going ▶';
+      }
+    } else if (frame > MERGE_STEPS) {
+      // already answered — go to next problem
+      cardIdx++;
+      if (cardIdx >= deck.length) { deck = buildDeck(); cardIdx = 0; }
+      showCard();
+    }
+    // frame === MERGE_STEPS: gated — must use the keypad
+  }
+
+  function guess(n) {
+    if (frame !== MERGE_STEPS || answered) return;
+    const correct = current.a + current.b;
+    if (n === correct) {
+      answered = true;
+      frame = MERGE_STEPS + 1;
+      renderEquation(true);
+      celebrate();
+      showKeypad(false);
+      positionRing();            // keypad gone — layout reflows, re-wrap the group
+      hint.textContent = `🎉 Yes! ${current.a} + ${current.b} = ${correct}!`;
+      nextBtn.textContent = 'Next problem ▶';
+    } else {
+      const ans = eqEl.querySelector('.answer');
+      ans.classList.remove('placeholder');
+      ans.classList.add('wrong');
+      ans.textContent = n;
+      eqEl.classList.add('shake');
+      hint.textContent = 'Not quite — try counting again!';
+      setTimeout(() => {
+        ans.classList.remove('wrong');
+        ans.classList.add('placeholder');
+        ans.textContent = '?';
+        eqEl.classList.remove('shake');
+      }, 800);
+    }
+  }
+
+  function newProblem() {
+    deck = buildDeck();
+    cardIdx = 0;
+    showCard();
+  }
+
+  // ---- celebration: a little cheer + confetti, no external assets ----
+  let actx = null;
+  function playCheer() {
+    try {
+      actx = actx || new (window.AudioContext || window.webkitAudioContext)();
+      [523.25, 659.25, 783.99, 1046.5].forEach((f, i) => {
+        const o = actx.createOscillator(), g = actx.createGain();
+        o.type = 'triangle';
+        o.frequency.value = f;
+        o.connect(g); g.connect(actx.destination);
+        const t = actx.currentTime + i * 0.12;
+        g.gain.setValueAtTime(0.0001, t);
+        g.gain.exponentialRampToValueAtTime(0.3, t + 0.02);
+        g.gain.exponentialRampToValueAtTime(0.0001, t + 0.2);
+        o.start(t); o.stop(t + 0.22);
+      });
+    } catch (e) { /* audio not available */ }
+  }
+
+  const cvs = document.getElementById('confetti');
+  const ctx = cvs.getContext('2d');
+  let pieces = [];
+  let confettiRAF = null;
+  function confetti() {
+    cvs.width = window.innerWidth;
+    cvs.height = window.innerHeight;
+    const colors = ['#ff9f43', '#ff8fab', '#74c0fc', '#ffd43b', '#69db7c', '#b197fc'];
+    pieces = [];
+    for (let i = 0; i < 150; i++) {
+      pieces.push({
+        x: window.innerWidth / 2, y: window.innerHeight / 3,
+        vx: (Math.random() - 0.5) * 13, vy: Math.random() * -13 - 4,
+        g: 0.3 + Math.random() * 0.15, size: 6 + Math.random() * 9,
+        color: colors[i % colors.length],
+        rot: Math.random() * 6.28, vr: (Math.random() - 0.5) * 0.35,
+        life: 90 + Math.random() * 45
+      });
+    }
+    if (confettiRAF) cancelAnimationFrame(confettiRAF);
+    (function frameLoop() {
+      ctx.clearRect(0, 0, cvs.width, cvs.height);
+      pieces.forEach(p => {
+        p.vy += p.g; p.x += p.vx; p.y += p.vy; p.rot += p.vr; p.life--;
+        ctx.save();
+        ctx.translate(p.x, p.y); ctx.rotate(p.rot);
+        ctx.fillStyle = p.color;
+        ctx.fillRect(-p.size / 2, -p.size / 2, p.size, p.size);
+        ctx.restore();
+      });
+      pieces = pieces.filter(p => p.life > 0 && p.y < cvs.height + 30);
+      if (pieces.length) confettiRAF = requestAnimationFrame(frameLoop);
+      else ctx.clearRect(0, 0, cvs.width, cvs.height);
+    })();
+  }
+  function celebrate() { playCheer(); confetti(); }
+
+  nextBtn.addEventListener('click', advance);
+  newBtn.addEventListener('click', newProblem);
+  window.addEventListener('keydown', (e) => {
+    if (frame === MERGE_STEPS && !answered) {
+      if (/^[0-9]$/.test(e.key)) { e.preventDefault(); guess(+e.key); }
+      return;                       // gated: cannot skip with space/enter
+    }
+    if (e.code === 'Space' || e.code === 'Enter' || e.code === 'ArrowRight') {
+      e.preventDefault(); advance();
+    }
+  });
+  window.addEventListener('resize', () => {
+    applyGap();
+    if (frame >= MERGE_STEPS) positionRing();
+  });
+
+  showCard();
+</script>
+</body>
+</html>
