@@ -52,4 +52,4 @@ The published URL will be `https://<user>.github.io/<repo>/`.
 
 ## License
 
-Free to use and share. Add a `LICENSE` file (e.g. MIT) if you publish it.
+[MIT](LICENSE) — free to use, modify, and share.
