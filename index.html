@@ -191,8 +191,8 @@
 
   function buildDeck() {
     const deck = [];
-    for (let a = 0; a <= 2; a++)
-      for (let b = 0; b <= 2; b++)
+    for (let a = 0; a <= 4; a++)
+      for (let b = 0; b <= 4; b++)
         deck.push({ a, b });
     for (let i = deck.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
