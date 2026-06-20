@@ -1,8 +1,11 @@
 # Adding Groups
 
 A self-contained, offline flashcard game that helps young kids learn single-digit
-addition. Two groups of cubes slide together, the child taps the total on an
-on-screen keypad, and a correct answer earns confetti and a little cheer.
+addition and subtraction. For addition, two groups of cubes slide together; for
+subtraction, a group of cubes appears and some fade away when the child taps
+"Take some away." Either way the child taps the answer on an on-screen keypad,
+and a correct answer earns confetti and a little cheer. Subtraction always uses
+the same number pairs as addition, ordered so the answer is never negative.
 
 There is nothing to install or build — it's a single static HTML file with no
 dependencies, no network calls, and no tracking.
@@ -22,8 +25,10 @@ python3 -m http.server 8000
 
 ## How to play
 
-1. Two groups of cubes appear with an addition equation.
-2. The child counts the cubes and taps the answer on the keypad.
+1. Cubes appear with an addition or subtraction equation — two groups to combine,
+   or one group with some cubes to take away.
+2. The child brings the groups together (or takes some away), counts the cubes,
+   and taps the answer on the keypad.
 3. A correct answer celebrates with confetti; then a new problem appears.
 
 Designed for touch: large tap targets, no scrolling, no menus to get lost in.
